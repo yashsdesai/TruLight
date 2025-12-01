@@ -1,0 +1,4 @@
+-r requirements.txt
+rpi-ws281x
+adafruit-circuitpython-neopixel
+adafruit-blinka
