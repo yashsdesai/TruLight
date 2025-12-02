@@ -95,8 +95,7 @@ function App() {
         </div>
         <nav style={{ display: "flex", gap: 16, fontSize: 14 }}>
           <span style={{ opacity: 0.9 }}>Live Control</span>
-          <span style={{ opacity: 0.6 }}>Scenes</span>
-          <span style={{ opacity: 0.6 }}>Settings</span>
+    
         </nav>
       </header>
 
@@ -330,7 +329,7 @@ function App() {
                       <button
                         onClick={() => {
                           setShowDropdown(false);
-                          setMode("fire");
+                          handleSetMode("fire");
                         }}
                         style={{
                           padding: "6px 10px",

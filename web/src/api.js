@@ -7,7 +7,7 @@ export async function healthCheck() {
   return res.json();
 }
 
-export async function sendCommand(action, payload=null) {
+export async function sendColor(action, payload=null) {
   const res = await fetch(`${BASE_URL}/color`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -17,8 +17,18 @@ export async function sendCommand(action, payload=null) {
   return res.json();
 }
 
+export async function sendCommand(action, payload=null) {
+  const res = await fetch(`${BASE_URL}/command`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action, payload }),
+  });
+  if (!res.ok) throw new Error("Command failed");
+  return res.json();
+}
+
 export async function setColor(color) {
-  return sendCommand("set_color", color); 
+  return sendColor("set_color", color); 
 }
 
 export async function setMode(mode) {
