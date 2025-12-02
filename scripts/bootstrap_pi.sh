@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_DIR="/home/pi//TruLight"  # adjust to your repo path on the Pi
+PROJECT_DIR="/home/pi/TruLight"
 
 sudo apt update
 sudo apt install -y python3-venv python3-pip python3-dev build-essential
