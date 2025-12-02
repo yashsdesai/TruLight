@@ -41,6 +41,7 @@ def _animation_loop():
     phase = 0
     last_mode = None
     last_color = None
+    sleep_ms = 30
 
     while True:
         with _lock:
@@ -67,8 +68,8 @@ def _animation_loop():
                 pixels[i] = (r1, g1, b1)
 
             pixels.show()
-            
-            time.sleep(random.randint(50, 150) / 1000)
+
+            sleep_ms = random.randint(50, 150)
             continue
 
 
@@ -80,7 +81,7 @@ def _animation_loop():
 
         last_mode = mode
         last_color = color
-        time.sleep(0.03)
+        time.sleep(sleep_ms / 1000)
 
 def _ensure_loop():
     global _loop_started
