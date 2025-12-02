@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from "react";
 import { RgbColorPicker } from "react-colorful";
 import throttle from "lodash.throttle";
-import { healthCheck, sendCommand, setColor } from "./api";
+import { healthCheck, sendCommand, setColor, setMode } from "./api";
 
 function App() {
   const [status, setStatus] = useState(null);
   const [result, setResult] = useState(null);
   const [color, setColorState] = useState({ r: 255, g: 255, b: 255 }); 
+  const [showDropdown, setShowDropdown] = useState(false);
 
   const handleHealth = async () => {
     try {
@@ -35,13 +36,22 @@ function App() {
       const data = await sendCommand("example_action", { foo: "bar" });
       setResult(data);
     } catch (e) {
-      setResult({ error: `${e} command failed` });
+      setResult({ error: `${e.message} command failed` });
     }
   };
 
   const handleColorChange = (nextColor) => {
     setColorState(nextColor);
     setColorThrottled(nextColor);
+  };
+
+  const handleSetMode = async (mode) => {
+    try {
+      const res = await setMode(mode);
+      setResult(res);
+    } catch (e) {
+      setResult({ error: `${e.message}` });
+    }
   };
 
   const rgbString = `rgb(${color.r}, ${color.g}, ${color.b})`;
@@ -282,20 +292,99 @@ function App() {
                 >
                   Check Health
                 </button>
-                <button
-                  onClick={handleCommand}
-                  style={{
-                    padding: "8px 14px",
-                    borderRadius: 999,
-                    border: "1px solid #1d4ed8",
-                    background: "#1d4ed8",
-                    color: "#e5e7eb",
-                    fontSize: 13,
-                    cursor: "pointer",
-                  }}
-                >
-                  Example Command
-                </button>
+                <div style={{ position: "relative" }}>
+                  <button
+                    onClick={() =>
+                      setShowDropdown((prev) => !prev)
+                    }
+                    style={{
+                      padding: "8px 14px",
+                      borderRadius: 999,
+                      border: "1px solid #1d4ed8",
+                      background: "#1d4ed8",
+                      color: "#e5e7eb",
+                      fontSize: 13,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Animations ▾
+                  </button>
+
+                  {showDropdown && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "38px",
+                        left: 0,
+                        background: "#020617",
+                        border: "1px solid #1f2937",
+                        borderRadius: 8,
+                        padding: 6,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 4,
+                        zIndex: 20,
+                        minWidth: 120,
+                      }}
+                    >
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          setMode("fire");
+                        }}
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: 6,
+                          background: "#1e293b",
+                          color: "#e5e7eb",
+                          textAlign: "left",
+                          border: "1px solid #1f2937",
+                          cursor: "pointer",
+                          fontSize: 13,
+                        }}  
+                      >
+                        Fire
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          setMode("sparkle");
+                        }}
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: 6,
+                          background: "#1e293b",
+                          color: "#e5e7eb",
+                          textAlign: "left",
+                          border: "1px solid #1f2937",
+                          cursor: "pointer",
+                          fontSize: 13,
+                        }}
+                      >
+                        Sparkle
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          handleSetMode("off");
+                        }}
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: 6,
+                          background: "#1e293b",
+                          color: "#e5e7eb",
+                          textAlign: "left",
+                          border: "1px solid #1f2937",
+                          cursor: "pointer",
+                          fontSize: 13,
+                        }}
+                      >
+                        Off
+                      </button>
+                    </div>
+                  )}
+                </div>
+
               </div>
               {status && (
                 <pre

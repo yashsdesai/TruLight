@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import colorControl
@@ -33,10 +33,12 @@ def health():
 
 @app.post("/color")
 def color(cmd: Command):
-    #TODO logic 
-    #colorControl.set_color(cmd)
-    #return {"received": cmd.action, "payload": cmd.payload}
-    return colorControl.set_color(cmd)
+    if cmd.action == "set_mode":
+        return colorControl.set_mode(cmd)
+    elif cmd.action == "set_color":
+        return colorControl.set_color(cmd)
+    else:
+        raise HTTPException(status_code=400, detail=f"Unknown action {cmd.action!r}")
 
 @app.get("/test")
 def test():

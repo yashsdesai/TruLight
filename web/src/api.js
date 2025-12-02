@@ -20,3 +20,7 @@ export async function sendCommand(action, payload=null) {
 export async function setColor(color) {
   return sendCommand("set_color", color); 
 }
+
+export async function setMode(mode) {
+  return sendCommand("set_mode", { mode });
+}
