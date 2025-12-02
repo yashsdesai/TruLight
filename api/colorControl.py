@@ -75,4 +75,5 @@ def off():
     for i in range(NUM_LEDS):
         pixels[i] = (0, 0, 0)
     
+    pixels.show()
     return {"Strip Power Off": True}
