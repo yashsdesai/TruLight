@@ -55,11 +55,21 @@ def _animation_loop():
                 pixels.show()
 
         elif mode == "fire":
+            base_r, base_g, base_b = 255, 96, 12
+
             for i in range(NUM_LEDS):
-                idx = (int(i * 256 / NUM_LEDS) + phase) & 255
-                pixels[i] = _wheel(idx)
+                flicker = random.randint(0, 40)
+
+                r1 = max(base_r - flicker, 0)
+                g1 = max(base_g - flicker, 0)
+                b1 = max(base_b - flicker, 0)
+
+                pixels[i] = (r1, g1, b1)
+
             pixels.show()
-            phase = (phase + 1) % 256
+            
+            time.sleep(random.randint(50, 150) / 1000)
+            continue
 
 
         elif mode == "off":
