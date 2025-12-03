@@ -362,27 +362,25 @@ function App() {
                       >
                         Eras
                       </button>
-                      <button
-                        onClick={() => {
-                          setShowDropdown(false);
-                          handleSetMode("off");
-                        }}
-                        style={{
-                          padding: "6px 10px",
-                          borderRadius: 6,
-                          background: "#1e293b",
-                          color: "#e5e7eb",
-                          textAlign: "left",
-                          border: "1px solid #1f2937",
-                          cursor: "pointer",
-                          fontSize: 13,
-                        }}
-                      >
-                        Off
-                      </button>
+                      
                     </div>
+                    
                   )}
                 </div>
+                <button
+                  onClick={() => handleSetMode("off")}
+                  style={{
+                    padding: "8px 14px",
+                    borderRadius: 999,
+                    border: "1px solid #e42b0aff",
+                    background: "#e42208ff",
+                    color: "#e5e7eb",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  Reset
+                </button>
 
               </div>
               {status && (
