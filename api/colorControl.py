@@ -13,7 +13,7 @@ except ImportError:
     board = None
     neopixel = None
 
-NUM_LEDS = 8
+NUM_LEDS = 20
 pixels = None
 
 if IS_PI:
@@ -72,6 +72,10 @@ def _animation_loop():
             sleep_ms = random.randint(50, 150)
             continue
 
+        elif mode == "eras":
+            # Add logic for each decade along with choice of light (tungsten, gas, carbon, etc.)
+            # Default to carbon filament ~1910s
+            pass
 
         elif mode == "off":
             if mode != last_mode:
@@ -90,7 +94,6 @@ def _ensure_loop():
     t = threading.Thread(target=_animation_loop, daemon=True)
     t.start()
     _loop_started = True
-
 
 def set_color(r, g, b):
     global current_color, current_mode
@@ -119,33 +122,3 @@ def set_mode(mode):
     
     return {"simulated": False, "mode": "unassigned"}
     
-
-# def fire():
-#     r = 255
-#     g = 96
-#     b = 12
-
-#     while(1):
-#         for i in range(NUM_LEDS):
-#             flicker = random.randint(0, 40)
-#             r1 = r-flicker
-#             g1 = g-flicker
-#             b1 = g-flicker
-#             if(r1 < 0):
-#                 r1 = 0
-#             elif(g1 < 0):
-#                 g1 = 0
-#             elif(b1 < 0):
-#                 b1 = 0
-#             pixels[i] = (r1, g1, 0)
-
-#         pixels.show()
-#         rand = random.randint(50, 150)
-#         time.sleep(rand/1000)
-
-# def off():
-#     for i in range(NUM_LEDS):
-#         pixels[i] = (0, 0, 0)
-    
-#     pixels.show()
-#     return {"Strip Power Off": True}
