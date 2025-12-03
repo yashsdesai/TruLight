@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { RgbColorPicker } from "react-colorful";
 import throttle from "lodash.throttle";
 import { healthCheck, sendCommand, setColor, setMode } from "./api";
@@ -8,6 +8,20 @@ function App() {
   const [result, setResult] = useState(null);
   const [color, setColorState] = useState({ r: 255, g: 255, b: 255 }); 
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isSmallScreen, setIsSmallScreen] = useState(false);
+
+  useEffect(
+    () => {
+      const handleResize = () => {
+        setIsSmallScreen(window.innerWidth <= 900);
+      };
+
+      handleResize();
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
+    },
+    []
+  );
 
   const handleHealth = async () => {
     try {
@@ -64,16 +78,17 @@ function App() {
         color: "#e5e7eb",
         display: "flex",
         flexDirection: "column",
+        overflow: "hidden",
       }}
     >
       <header
         style={{
-          height: 64,
+          height: isSmallScreen ? 52 : 64,
           borderBottom: "1px solid #1f2937",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "0 24px",
+          padding: isSmallScreen ? "0 12px" : "0 24px",
           background: "rgba(15,23,42,0.9)",
           backdropFilter: "blur(12px)",
           position: "sticky",
@@ -102,18 +117,19 @@ function App() {
       <main
         style={{
           flex: 1,
-          padding: "32px 24px",
+          padding: isSmallScreen ? "16px 12px" : "32px 24px",
           display: "flex",
           justifyContent: "center",
+          overflow: "auto"
         }}
       >
         <div
           style={{
             width: "100%",
-            maxWidth: 960,
+            maxWidth: isSmallScreen ? "100%" : 960,
             display: "grid",
-            gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1.2fr)",
-            gap: 24,
+            gridTemplateColumns: isSmallScreen ? "minmax(0, 1fr)" : "minmax(0, 2fr) minmax(0, 1.2fr)",
+            gap: isSmallScreen ? 16 : 24,
           }}
         >
           <section
@@ -121,7 +137,7 @@ function App() {
               background: "rgba(15,23,42,0.85)",
               borderRadius: 16,
               border: "1px solid #1f2937",
-              padding: 24,
+              padding: isSmallScreen ? 16 : 24,
               boxShadow: "0 20px 40px rgba(0,0,0,0.35)",
             }}
           >
@@ -259,7 +275,7 @@ function App() {
                 background: "rgba(15,23,42,0.85)",
                 borderRadius: 16,
                 border: "1px solid #1f2937",
-                padding: 20,
+                padding: isSmallScreen ? 14 : 20,
                 boxShadow: "0 16px 30px rgba(0,0,0,0.35)",
               }}
             >
@@ -405,7 +421,7 @@ function App() {
                 background: "rgba(15,23,42,0.85)",
                 borderRadius: 16,
                 border: "1px solid #1f2937",
-                padding: 20,
+                padding: isSmallScreen ? 14 : 20,
                 boxShadow: "0 16px 30px rgba(0,0,0,0.35)",
                 display: "flex",
                 flexDirection: "column",
