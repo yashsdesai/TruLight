@@ -347,7 +347,7 @@ function App() {
                       <button
                         onClick={() => {
                           setShowDropdown(false);
-                          setMode("sparkle");
+                          handleSetMode("eras");
                         }}
                         style={{
                           padding: "6px 10px",
@@ -360,7 +360,7 @@ function App() {
                           fontSize: 13,
                         }}
                       >
-                        Sparkle
+                        Eras
                       </button>
                       <button
                         onClick={() => {
