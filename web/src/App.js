@@ -167,23 +167,26 @@ function App() {
                 style={{
                   background: "#020617",
                   borderRadius: 16,
-                  padding: isSmallScreen ? 8 : 16,
+                  padding: isSmallScreen ? 8 : 12,
                   border: "1px solid #1f2937",
                   display: "flex",
                   justifyContent: "center",
-                  alignItems: "center"
+                  alignItems: "center",
                 }}
               >
                 <div
                   style={{
-                    width: isSmallScreen ? 180 : "100%",
-                    maxWidth: isSmallScreen ? 180 : 260,
-                    aspectRatio: "1 / 1",
+                    width: isSmallScreen ? 150 : 220,
                   }}
                 >
-                  <RgbColorPicker color={color} onChange={handleColorChange} />
+                  <RgbColorPicker
+                    color={color}
+                    onChange={handleColorChange}
+                    style={{ width: "100%" }}
+                  />
                 </div>
               </div>
+
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div>
                   <div
