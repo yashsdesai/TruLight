@@ -10,9 +10,22 @@ function App() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [isSmallScreen, setIsSmallScreen] = useState(false);
 
+  useEffect(
+    () => {
+      const handleResize = () => {
+        setIsSmallScreen(window.innerWidth <= 900);
+      };
+
+      handleResize();
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
+    },
+    []
+  );
+
   const handleHealth = async () => {
     try {
-      const data = await healthCheck();
+      const data =  await healthCheck();
       setStatus(JSON.stringify(data));
     } catch (e) {
       setStatus("error");
@@ -60,7 +73,7 @@ function App() {
   return (
     <div
       style={{
-        minHeight: "100vh",
+        height: "100vh",
         background: "#0f172a",
         color: "#e5e7eb",
         display: "flex",
@@ -70,12 +83,12 @@ function App() {
     >
       <header
         style={{
-          height: 64,
+          height: isSmallScreen ? 52 : 64,
           borderBottom: "1px solid #1f2937",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "0 24px",
+          padding: isSmallScreen ? "0 12px" : "0 24px",
           background: "rgba(15,23,42,0.9)",
           backdropFilter: "blur(12px)",
           position: "sticky",
@@ -93,9 +106,9 @@ function App() {
                 "conic-gradient(from 180deg, #f97316, #ec4899, #3b82f6, #22c55e, #f97316)",
             }}
           />
-          <span style={{ fontSize: 18, fontWeight: 600 }}>TruLight</span>
+          <span style={{ fontSize: isSmallScreen ? 16 : 18, fontWeight: 600 }}>TruLight</span>
         </div>
-        <nav style={{ display: "flex", gap: 16, fontSize: 14 }}>
+        <nav style={{ display: "flex", gap: 16, fontSize: isSmallScreen ? 12 : 14 }}>
           <span style={{ opacity: 0.9 }}>Live Control</span>
     
         </nav>
@@ -104,18 +117,19 @@ function App() {
       <main
         style={{
           flex: 1,
-          padding: "32px 24px",
+          padding: isSmallScreen ? "8px 8px" : "32px 24px",
           display: "flex",
           justifyContent: "center",
+          overflow: "hidden",
         }}
       >
         <div
           style={{
             width: "100%",
-            maxWidth: 960,
+            maxWidth: isSmallScreen ? 800 : 960,
             display: "grid",
             gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1.2fr)",
-            gap: 24,
+            gap: isSmallScreen ? 12 : 24,
           }}
         >
           <section
@@ -123,18 +137,18 @@ function App() {
               background: "rgba(15,23,42,0.85)",
               borderRadius: 16,
               border: "1px solid #1f2937",
-              padding: 24,
+              padding: isSmallScreen ? 12 : 24,
               boxShadow: "0 20px 40px rgba(0,0,0,0.35)",
             }}
           >
-            <h2 style={{ margin: 0, marginBottom: 8, fontSize: 18 }}>
+            <h2 style={{ margin: 0, marginBottom: isSmallScreen ? 4 : 8, fontSize: isSmallScreen ? 16 : 18 }}>
               Color Wheel
             </h2>
             <p
               style={{
                 margin: 0,
-                marginBottom: 24,
-                fontSize: 13,
+                marginBottom: isSmallScreen ? 12: 24,
+                fontSize: isSmallScreen ? 12 : 13,
                 opacity: 0.7,
               }}
             >
@@ -145,7 +159,7 @@ function App() {
               style={{
                 display: "grid",
                 gridTemplateColumns: "minmax(0, 1.3fr) minmax(0, 1fr)",
-                gap: 24,
+                gap: isSmallScreen ? 12 : 24,
                 alignItems: "center",
               }}
             >
@@ -153,13 +167,23 @@ function App() {
                 style={{
                   background: "#020617",
                   borderRadius: 16,
-                  padding: 16,
+                  padding: isSmallScreen ? 8 : 16,
                   border: "1px solid #1f2937",
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center"
                 }}
               >
-                <RgbColorPicker color={color} onChange={handleColorChange} />
+                <div
+                  style={{
+                    width: isSmallScreen ? 180 : "100%",
+                    maxWidth: isSmallScreen ? 180 : 260,
+                    aspectRatio: "1 / 1",
+                  }}
+                >
+                  <RgbColorPicker color={color} onChange={handleColorChange} />
+                </div>
               </div>
-
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div>
                   <div
@@ -175,7 +199,7 @@ function App() {
                   </div>
                   <div
                     style={{
-                      height: 80,
+                      height: isSmallScreen ? 60 : 80,
                       borderRadius: 16,
                       border: "1px solid #1f2937",
                       background: rgbString,
@@ -261,7 +285,7 @@ function App() {
                 background: "rgba(15,23,42,0.85)",
                 borderRadius: 16,
                 border: "1px solid #1f2937",
-                padding: 20,
+                padding: isSmallScreen ? 10 : 20,
                 boxShadow: "0 16px 30px rgba(0,0,0,0.35)",
               }}
             >
@@ -278,16 +302,16 @@ function App() {
               >
                 Health checks and example commands against the backend.
               </p>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: isSmallScreen ? "wrap" : "nowrap" }}>
                 <button
                   onClick={handleHealth}
                   style={{
-                    padding: "8px 14px",
+                    padding: isSmallScreen ? "6px 10px" : "8px 14px",
                     borderRadius: 999,
                     border: "1px solid #22c55e",
                     background: "#16a34a",
                     color: "#e5e7eb",
-                    fontSize: 13,
+                    fontSize: isSmallScreen ? 11 : 13,
                     cursor: "pointer",
                   }}
                 >
@@ -299,12 +323,12 @@ function App() {
                       setShowDropdown((prev) => !prev)
                     }
                     style={{
-                      padding: "8px 14px",
+                      padding: isSmallScreen ? "6px 10px" : "8px 14px",
                       borderRadius: 999,
                       border: "1px solid #1d4ed8",
                       background: "#1d4ed8",
                       color: "#e5e7eb",
-                      fontSize: 13,
+                      fontSize: isSmallScreen ? 11 : 13,
                       cursor: "pointer",
                     }}
                   >
@@ -372,12 +396,12 @@ function App() {
                 <button
                   onClick={() => handleSetMode("off")}
                   style={{
-                    padding: "8px 14px",
+                    padding: isSmallScreen ? "6px 10px" : "8px 14px",
                     borderRadius: 999,
                     border: "1px solid #e42b0aff",
                     background: "#e42208ff",
                     color: "#e5e7eb",
-                    fontSize: 13,
+                    fontSize: isSmallScreen ? 11 : 13,
                     cursor: "pointer",
                   }}
                 >
@@ -389,7 +413,7 @@ function App() {
                 <pre
                   style={{
                     marginTop: 12,
-                    fontSize: 12,
+                    fontSize: isSmallScreen ? 11 : 12,
                     background: "#020617",
                     borderRadius: 8,
                     padding: 8,
@@ -407,7 +431,7 @@ function App() {
                 background: "rgba(15,23,42,0.85)",
                 borderRadius: 16,
                 border: "1px solid #1f2937",
-                padding: 20,
+                padding: isSmallScreen ? 10 : 20,
                 boxShadow: "0 16px 30px rgba(0,0,0,0.35)",
                 display: "flex",
                 flexDirection: "column",
@@ -428,13 +452,14 @@ function App() {
               </p>
               <div
                 style={{
-                  flex: 1,
-                  overflow: "auto",
+                  flex: isSmallScreen ? "0 0 180px" : 1,
+                  maxHeight: isSmallScreen ? 180 : "none",
+                  overflow: "auto",               
                   background: "#020617",
                   borderRadius: 8,
                   border: "1px solid #1f2937",
                   padding: 10,
-                  fontSize: 12,
+                  fontSize: isSmallScreen ? 10 : 12,
                 }}
               >
                 {result ? (
