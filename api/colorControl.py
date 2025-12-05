@@ -1,6 +1,7 @@
 import json
 import random
 import time
+import math
 import threading
 
 try:
@@ -13,8 +14,12 @@ except ImportError:
     board = None
     neopixel = None
 
-NUM_LEDS = 20
+# Pixels Config
+NUM_LEDS = 50
 pixels = None
+# Only for Eras:
+LAMP_COUNT = 6
+
 
 if IS_PI:
     pixels = neopixel.NeoPixel(board.D18, NUM_LEDS, auto_write=False)
@@ -75,6 +80,9 @@ def _animation_loop():
         elif mode == "eras":
             # Add logic for each decade along with choice of light (tungsten, gas, carbon, etc.)
             # Default to carbon filament ~1910s
+
+            # -> Testing just 1910s carbon filament with lamp zones
+
             pass
 
         elif mode == "off":
@@ -109,6 +117,34 @@ def set_color(r, g, b):
 
     return {"simulated": False, "r": r, "g": g, "b": b}
 
+# Temp to color (warm light approximation)
+def _kelvin_to_rgb(k):
+    k = k / 100.0
+
+    # Red
+    if k <= 66:
+        r = 255
+    else:
+        r = 329.698727446 * ((k - 60) ** -0.1332047592)
+        r = max(0, min(255, r))
+
+    # Green
+    if k <= 66:
+        g = 99.4708025861 * math.log(k) - 161.1195681661
+    else:
+        g = 288.1221695283 * ((k - 60) ** -0.0755148492)
+    g = max(0, min(255, g))
+
+    # Blue
+    if k >= 66:
+        b = 255
+    elif k <= 19:
+        b = 0
+    else:
+        b = 138.5177312231 * math.log(k - 10) - 305.0447927307
+    b = max(0, min(255, b))
+
+    return (int(r), int(g), int(b))
 
 def set_mode(mode):
     global current_mode
