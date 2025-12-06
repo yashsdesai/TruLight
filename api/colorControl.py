@@ -48,6 +48,8 @@ def _animation_loop():
     era_surge_total = 0
     era_surge_strength = 0.0
     era_buzz_phase = 0.0
+    era_lamp_level = []
+    era_lamp_target = []
 
     while True:
         with _lock:
@@ -90,21 +92,24 @@ def _animation_loop():
                     start = max(0, min(NUM_LEDS - 1, start))
                     end = max(0, min(NUM_LEDS - 1, end))
                     era_lamps.append((start, end))
+                era_lamp_level = [random.uniform(0.6, 0.9) for _ in era_lamps]
+                era_lamp_target = list(era_lamp_level)
                 era_initialized = True
 
             if not IS_PI or pixels is None or not era_lamps:
                 sleep_ms = 40
+                time.sleep(sleep_ms / 1000.0)
                 continue
 
-            base_temp = 2300.0
+            base_temp = 2250.0
 
-            era_buzz_phase += 0.35
-            mains_mod = 0.96 + 0.04 * math.sin(era_buzz_phase)
+            era_buzz_phase += 0.25
+            mains_mod = 0.97 + 0.03 * math.sin(era_buzz_phase)
 
-            if era_surge_frames <= 0 and random.random() < 0.003:
-                era_surge_total = random.randint(10, 24)
+            if era_surge_frames <= 0 and random.random() < 0.002:
+                era_surge_total = random.randint(8, 18)
                 era_surge_frames = era_surge_total
-                era_surge_strength = random.uniform(-0.5, 0.35)
+                era_surge_strength = random.uniform(-0.35, 0.25)
 
             if era_surge_frames > 0 and era_surge_total > 0:
                 progress = (era_surge_total - era_surge_frames) / float(max(1, era_surge_total))
@@ -113,30 +118,40 @@ def _animation_loop():
             else:
                 surge_scale = 1.0
 
-            for (start, end) in era_lamps:
-                k_jitter = random.gauss(0.0, 80.0)
-                k = max(1800.0, min(2600.0, base_temp + k_jitter))
+            for idx, (start, end) in enumerate(era_lamps):
+                if random.random() < 0.08:
+                    delta = random.uniform(-0.05, 0.05)
+                    era_lamp_target[idx] = max(0.55, min(1.05, era_lamp_target[idx] + delta))
+
+                era_lamp_level[idx] += (era_lamp_target[idx] - era_lamp_level[idx]) * 0.2
+
+                k_jitter = random.gauss(0.0, 50.0)
+                k = max(1900.0, min(2600.0, base_temp + k_jitter))
 
                 r, g, b = _kelvin_to_rgb(k)
 
-                fast_flicker = 0.93 + 0.07 * random.random()
-                deep_flicker = 1.0
-                if random.random() < 0.01:
-                    deep_flicker = random.uniform(0.35, 0.65)
+                lamp_scale = mains_mod * surge_scale * era_lamp_level[idx]
+                lamp_scale = max(0.18, min(1.0, lamp_scale))
 
-                scale = mains_mod * surge_scale * fast_flicker * deep_flicker
-                scale = max(0.15, min(1.3, scale))
-
-                rr = int(max(0, min(255, r * scale)))
-                gg = int(max(0, min(255, g * scale * 0.95)))
-                bb = int(max(0, min(255, b * scale * 0.65)))
-
+                length = max(1, end - start + 1)
                 for i in range(start, end + 1):
                     if 0 <= i < NUM_LEDS:
+                        if length > 1:
+                            pos = (i - start) / float(length - 1)
+                        else:
+                            pos = 0.5
+                        edge_dim = 0.8 + 0.2 * (1.0 - abs(0.5 - pos) * 2.0)
+                        s = lamp_scale * edge_dim
+                        rr = int(max(0, min(255, r * s)))
+                        gg = int(max(0, min(255, g * s * 0.92)))
+                        bb = int(max(0, min(255, b * s * 0.6)))
                         pixels[i] = (rr, gg, bb)
 
             pixels.show()
-            sleep_ms = random.randint(28, 42)
+            sleep_ms = random.randint(35, 55)
+            time.sleep(sleep_ms / 1000.0)
+            last_mode = mode
+            last_color = color
             continue
 
         elif mode == "off":
