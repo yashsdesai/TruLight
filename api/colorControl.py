@@ -51,6 +51,15 @@ def _animation_loop():
     era_lamp_level = []
     era_lamp_target = []
 
+    cin_initialized = False
+    cin_lamps = []
+    cin_surge_frames = 0
+    cin_surge_total = 0
+    cin_surge_strength = 0.0
+    cin_lamp_level = []
+    cin_lamp_target = []
+    cin_phase = 0.0
+
     while True:
         with _lock:
             mode = current_mode
@@ -78,6 +87,9 @@ def _animation_loop():
                 pixels.show()
 
             sleep_ms = random.randint(50, 150)
+            time.sleep(sleep_ms / 1000.0)
+            last_mode = mode
+            last_color = color
             continue
 
         elif mode == "eras":
@@ -99,17 +111,19 @@ def _animation_loop():
             if not IS_PI or pixels is None or not era_lamps:
                 sleep_ms = 40
                 time.sleep(sleep_ms / 1000.0)
+                last_mode = mode
+                last_color = color
                 continue
 
             base_temp = 2250.0
 
             era_buzz_phase += 0.25
-            mains_mod = 0.95 + 0.05 * math.sin(era_buzz_phase)
+            mains_mod = 0.97 + 0.03 * math.sin(era_buzz_phase)
 
-            if era_surge_frames <= 0 and random.random() < 0.003:
-                era_surge_total = random.randint(10, 22)
+            if era_surge_frames <= 0 and random.random() < 0.002:
+                era_surge_total = random.randint(8, 18)
                 era_surge_frames = era_surge_total
-                era_surge_strength = random.uniform(-0.45, 0.35)
+                era_surge_strength = random.uniform(-0.35, 0.25)
 
             if era_surge_frames > 0 and era_surge_total > 0:
                 progress = (era_surge_total - era_surge_frames) / float(max(1, era_surge_total))
@@ -118,22 +132,20 @@ def _animation_loop():
             else:
                 surge_scale = 1.0
 
-            lamp_count = len(era_lamps)
             for idx, (start, end) in enumerate(era_lamps):
-                if random.random() < 0.1:
-                    delta = random.uniform(-0.08, 0.08)
-                    era_lamp_target[idx] = max(0.55, min(1.1, era_lamp_target[idx] + delta))
+                if random.random() < 0.08:
+                    delta = random.uniform(-0.05, 0.05)
+                    era_lamp_target[idx] = max(0.55, min(1.05, era_lamp_target[idx] + delta))
 
-                era_lamp_level[idx] += (era_lamp_target[idx] - era_lamp_level[idx]) * 0.15
+                era_lamp_level[idx] += (era_lamp_target[idx] - era_lamp_level[idx]) * 0.2
 
-                temp_offset = (idx - (lamp_count - 1) / 2.0) * 60.0
-                k_jitter = random.gauss(0.0, 40.0) + temp_offset
+                k_jitter = random.gauss(0.0, 50.0)
                 k = max(1900.0, min(2600.0, base_temp + k_jitter))
 
                 r, g, b = _kelvin_to_rgb(k)
 
-                lamp_base = mains_mod * surge_scale * era_lamp_level[idx]
-                lamp_base = max(0.2, min(1.0, lamp_base))
+                lamp_scale = mains_mod * surge_scale * era_lamp_level[idx]
+                lamp_scale = max(0.18, min(1.0, lamp_scale))
 
                 length = max(1, end - start + 1)
                 for i in range(start, end + 1):
@@ -142,15 +154,105 @@ def _animation_loop():
                             pos = (i - start) / float(length - 1)
                         else:
                             pos = 0.5
-                        edge_profile = 0.4 + 0.6 * (1.0 - min(1.0, abs(0.5 - pos) * 2.0))
-                        s = lamp_base * edge_profile
+                        edge_dim = 0.8 + 0.2 * (1.0 - abs(0.5 - pos) * 2.0)
+                        s = lamp_scale * edge_dim
                         rr = int(max(0, min(255, r * s)))
-                        gg = int(max(0, min(255, g * s * 0.9)))
-                        bb = int(max(0, min(255, b * s * 0.55)))
+                        gg = int(max(0, min(255, g * s * 0.92)))
+                        bb = int(max(0, min(255, b * s * 0.6)))
                         pixels[i] = (rr, gg, bb)
 
             pixels.show()
-            sleep_ms = random.randint(40, 55)
+            sleep_ms = random.randint(35, 55)
+            time.sleep(sleep_ms / 1000.0)
+            last_mode = mode
+            last_color = color
+            continue
+
+        elif mode == "cinematic":
+            if not cin_initialized:
+                cin_lamps = []
+                leds_per_lamp = NUM_LEDS / float(LAMP_COUNT)
+                for lamp_idx in range(LAMP_COUNT):
+                    start = int(round(lamp_idx * leds_per_lamp))
+                    end = int(round((lamp_idx + 1) * leds_per_lamp)) - 1
+                    if start > end:
+                        continue
+                    start = max(0, min(NUM_LEDS - 1, start))
+                    end = max(0, min(NUM_LEDS - 1, end))
+                    cin_lamps.append((start, end))
+                cin_lamp_level = [random.uniform(0.8, 1.0) for _ in cin_lamps]
+                cin_lamp_target = list(cin_lamp_level)
+                cin_initialized = True
+
+            if not IS_PI or pixels is None or not cin_lamps:
+                sleep_ms = 40
+                time.sleep(sleep_ms / 1000.0)
+                last_mode = mode
+                last_color = color
+                continue
+
+            cin_phase += 0.04
+            vignette_center = 0.5 + 0.1 * math.sin(cin_phase)
+            global_dark = 0.35 + 0.25 * (1.0 - abs(0.5 - vignette_center) * 2.0)
+
+            if cin_surge_frames <= 0 and random.random() < 0.02:
+                cin_surge_total = random.randint(6, 18)
+                cin_surge_frames = cin_surge_total
+                cin_surge_strength = random.uniform(-0.7, 0.5)
+
+            if cin_surge_frames > 0 and cin_surge_total > 0:
+                progress = (cin_surge_total - cin_surge_frames) / float(max(1, cin_surge_total))
+                surge_scale = 1.0 + cin_surge_strength * math.sin(progress * math.pi)
+                cin_surge_frames -= 1
+            else:
+                surge_scale = 1.0
+
+            lamp_count = len(cin_lamps)
+            for idx, (start, end) in enumerate(cin_lamps):
+                if random.random() < 0.2:
+                    delta = random.uniform(-0.15, 0.15)
+                    cin_lamp_target[idx] = max(0.4, min(1.3, cin_lamp_target[idx] + delta))
+
+                cin_lamp_level[idx] += (cin_lamp_target[idx] - cin_lamp_level[idx]) * 0.22
+
+                base_temp = 2100.0 + (idx - (lamp_count - 1) / 2.0) * 120.0
+                k_jitter = random.gauss(0.0, 80.0)
+                k = max(1800.0, min(2600.0, base_temp + k_jitter))
+                r, g, b = _kelvin_to_rgb(k)
+
+                lamp_base = cin_lamp_level[idx] * surge_scale
+                lamp_base = max(0.2, min(1.2, lamp_base))
+
+                glitch = 1.0
+                if random.random() < 0.03:
+                    glitch = random.uniform(0.5, 1.4)
+
+                length = max(1, end - start + 1)
+                for i in range(start, end + 1):
+                    if 0 <= i < NUM_LEDS:
+                        if length > 1:
+                            pos = (i - start) / float(length - 1)
+                        else:
+                            pos = 0.5
+                        x = (pos - 0.5) * 2.0
+                        center_profile = 1.0 - min(1.0, x * x)
+                        edge_profile = 0.25 + 0.75 * center_profile
+
+                        if NUM_LEDS > 1:
+                            gpos = i / float(NUM_LEDS - 1)
+                        else:
+                            gpos = 0.5
+                        global_profile = global_dark + (1.0 - global_dark) * (1.0 - min(1.0, abs(gpos - 0.5) * 2.0))
+
+                        s = lamp_base * edge_profile * global_profile * glitch
+
+                        rr = int(max(0, min(255, r * s)))
+                        gg = int(max(0, min(255, g * s * 0.75)))
+                        bb = int(max(0, min(255, b * s * 0.3)))
+                        pixels[i] = (rr, gg, bb)
+
+            pixels.show()
+            sleep_ms = random.randint(45, 70)
             time.sleep(sleep_ms / 1000.0)
             last_mode = mode
             last_color = color
