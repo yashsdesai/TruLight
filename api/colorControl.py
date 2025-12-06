@@ -13,9 +13,9 @@ except ImportError:
     board = None
     neopixel = None
 
-NUM_LEDS = 20
+NUM_LEDS = 40
 pixels = None
-LAMP_COUNT = 3
+LAMP_COUNT = 2
 
 if IS_PI:
     pixels = neopixel.NeoPixel(board.D18, NUM_LEDS, auto_write=False)
