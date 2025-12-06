@@ -15,7 +15,7 @@ except ImportError:
     neopixel = None
 
 # Pixels Config
-NUM_LEDS = 20
+NUM_LEDS = 10
 pixels = None
 # Only for Eras:
 LAMP_COUNT = 6
