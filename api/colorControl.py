@@ -320,7 +320,8 @@ def _animation_loop():
                     b += 4
 
                 pixels[i] = (r, g, b)
-            pixels.show()
+            
+                pixels.show()
             time.sleep(sleep_ms)
             continue
 
