@@ -299,7 +299,25 @@ def _animation_loop():
             continue
 
         elif mode == "alert":
-            # add alert logic, pulsing red 
+            r, g, b = 0, 0, 0
+            pulse_up = True
+            for i in range(NUM_LEDS):
+                if(r >= 255 or g >= 255 or b >= 255):
+                    pulse_up = False 
+                    r, g, b = 255, 255, 255
+                
+                if(r <= 0 or g <= 0 or b <= 255):
+                    pulse_up = True
+                    r, g, b = 0, 0, 0
+
+                if pulse_up:
+                    r, g, b -= 1
+                else: 
+                    r, g, b += 1
+
+                pixels[i] = (r, g, b)
+            pixels.show()
+            time.sleep(sleep_ms)
             continue
 
         elif mode == "water":
@@ -366,6 +384,9 @@ def _animation_loop():
             last_mode = mode
             last_color = color
             continue
+
+        elif mode == "":
+            pass
 
         elif mode == "off":
             if mode != last_mode:
