@@ -311,9 +311,13 @@ def _animation_loop():
                     r, g, b = 0, 0, 0
 
                 if pulse_up:
-                    r, g, b -= 1
+                    r -= 4
+                    g -= 4
+                    b -= 4
                 else: 
-                    r, g, b += 1
+                    r += 4
+                    g += 4
+                    b += 4
 
                 pixels[i] = (r, g, b)
             pixels.show()
