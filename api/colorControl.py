@@ -299,30 +299,28 @@ def _animation_loop():
             continue
 
         elif mode == "alert":
-            r, g, b = 0, 0, 0
-            pulse_up = True
+            if not IS_PI or pixels is None:
+                sleep_ms = 40
+                time.sleep(sleep_ms / 1000.0)
+                last_mode = mode
+                last_color = color
+                continue
+
+            phase += 0.12
+            level = (math.sin(phase) + 1.0) / 2.0
+            level = level * level
+            r = int(255 * level)
+            g = 0
+            b = 0
+
             for i in range(NUM_LEDS):
-                if(r >= 255 or g >= 255 or b >= 255):
-                    pulse_up = False 
-                    r, g, b = 255, 255, 255
-                
-                if(r <= 0 or g <= 0 or b <= 255):
-                    pulse_up = True
-                    r, g, b = 0, 0, 0
-
-                if pulse_up:
-                    r -= 4
-                    g -= 4
-                    b -= 4
-                else: 
-                    r += 4
-                    g += 4
-                    b += 4
-
                 pixels[i] = (r, g, b)
-            
-                pixels.show()
-            time.sleep(sleep_ms)
+
+            pixels.show()
+            sleep_ms = 40
+            time.sleep(sleep_ms / 1000.0)
+            last_mode = mode
+            last_color = color
             continue
 
         elif mode == "water":
