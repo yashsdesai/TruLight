@@ -13,7 +13,7 @@ except ImportError:
     board = None
     neopixel = None
 
-NUM_LEDS = 40
+NUM_LEDS = 50
 pixels = None
 LAMP_COUNT = 2
 
@@ -293,6 +293,75 @@ def _animation_loop():
 
             pixels.show()
             sleep_ms = random.randint(45, 70)
+            time.sleep(sleep_ms / 1000.0)
+            last_mode = mode
+            last_color = color
+            continue
+
+        elif mode == "alert":
+            # add alert logic, pulsing red 
+            continue
+
+        elif mode == "water":
+            if not IS_PI or pixels is None:
+                sleep_ms = 40
+                time.sleep(sleep_ms / 1000.0)
+                last_mode = mode
+                last_color = color
+                continue
+
+            t = time.time()
+            num_pixels = NUM_LEDS
+            if num_pixels <= 1:
+                pixels.show()
+                sleep_ms = 40
+                time.sleep(sleep_ms / 1000.0)
+                last_mode = mode
+                last_color = color
+                continue
+
+            base_brightness = 0.15
+            caustic_strength = 0.85
+
+            freq1 = 1.2
+            freq2 = 2.7
+            freq3 = 7.5
+
+            speed1 = 0.04
+            speed2 = -0.07
+            speed3 = 0.18
+
+            for i in range(num_pixels):
+                x = i / float(num_pixels - 1)
+
+                w1 = math.sin(2 * math.pi * (freq1 * x - speed1 * t))
+                w2 = math.sin(2 * math.pi * (freq2 * x - speed2 * t))
+                w3 = 0.4 * math.sin(2 * math.pi * (freq3 * x - speed3 * t))
+
+                w = (w1 + w2 + w3) / 2.4
+                intensity = (w * 0.5 + 0.5)
+                intensity = intensity * intensity
+                intensity += random.uniform(-0.03, 0.03)
+                intensity = max(0.0, min(1.0, intensity))
+
+                brightness = base_brightness + caustic_strength * intensity
+                brightness = max(0.0, min(1.0, brightness))
+
+                r_base, g_base, b_base = 0, 20, 80
+                r_hi, g_hi, b_hi = 10, 180, 255
+
+                r = int(r_base + (r_hi - r_base) * intensity)
+                g = int(g_base + (g_hi - g_base) * intensity)
+                b = int(b_base + (b_hi - b_base) * intensity)
+
+                r = int(r * brightness)
+                g = int(g * brightness)
+                b = int(b * brightness)
+
+                pixels[i] = (r, g, b)
+
+            pixels.show()
+            sleep_ms = 20
             time.sleep(sleep_ms / 1000.0)
             last_mode = mode
             last_color = color
