@@ -25,6 +25,10 @@ current_color = (0, 0, 0)
 _lock = threading.Lock()
 _loop_started = False
 
+# store prev state for test
+prev_mode = None
+prev_color = (0, 0, 0)
+
 def _wheel(pos):
     if pos < 85:
         return (pos * 3, 255 - pos * 3, 0)
@@ -61,6 +65,10 @@ def _animation_loop():
     cin_surge_total = 0
     cin_surge_strength = 0.0
     cin_phase = 0.0
+
+    test_initialized = False
+    test_start = 0.0
+    test_duration = 0.5
 
     while True:
         with _lock:
@@ -388,8 +396,51 @@ def _animation_loop():
             last_color = color
             continue
 
-        elif mode == "":
-            pass
+        elif mode == "test":
+            if not IS_PI or pixels is None:
+                sleep_ms = 40
+                time.sleep(sleep_ms / 1000.0)
+                last_mode = mode
+                last_color = color
+                continue
+
+            if not test_initialized:
+                test_initialized = True
+                test_start = time.time()
+
+            elapsed = time.time() - test_start
+
+            if elapsed >= test_duration:
+                with _lock:
+                    target_mode = prev_mode if prev_mode is not None else "off"
+                    target_color = prev_color if prev_color is not None else (0, 0, 0)
+                    current_mode = target_mode
+                    current_color = target_color
+                test_initialized = False
+                sleep_ms = 10
+                time.sleep(sleep_ms / 1000.0)
+                last_mode = mode
+                last_color = color
+                continue
+
+            phase = elapsed / test_duration
+            level = math.sin(math.pi * phase)
+            if level < 0.0:
+                level = 0.0
+
+            r = int(255 * level)
+            g = int(255 * level)
+            b = int(255 * level)
+
+            for i in range(NUM_LEDS):
+                pixels[i] = (r, g, b)
+
+            pixels.show()
+            sleep_ms = 20
+            time.sleep(sleep_ms / 1000.0)
+            last_mode = mode
+            last_color = color
+            continue
 
         elif mode == "off":
             if mode != last_mode:
@@ -451,13 +502,17 @@ def _kelvin_to_rgb(k):
     return (int(r), int(g), int(b))
 
 def set_mode(mode):
-    global current_mode
+    global current_mode, prev_color, prev_mode
     _ensure_loop()
 
     if not IS_PI or pixels is None:
         return {"simulated": True, "mode": mode}
 
     with _lock:
+        if mode == "test":
+            prev_mode = current_mode
+            prev_color = current_color
+
         current_mode = mode
 
     return {"simulated": False, "mode": "unassigned"}

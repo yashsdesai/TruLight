@@ -51,5 +51,10 @@ def command(cmd: Command):
         set_mode(mode)
         return {"status": "ok", "mode": mode}
 
+@app.post("/test")
+def test_lights(cmd: Command):
+    if cmd.action == "test":
+        set_mode("test")
+        return {"status": "ok"}
 
 
