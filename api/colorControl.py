@@ -436,7 +436,7 @@ def _animation_loop():
                 pixels[i] = (r, g, b)
 
             pixels.show()
-            sleep_ms = 10
+            sleep_ms = 20
             time.sleep(sleep_ms / 1000.0)
             last_mode = mode
             last_color = color
