@@ -1,5 +1,5 @@
-//const BASE_URL = process.env.TRULIGHT_API_URL || 'http://raspberrypi.local:8000';
-const BASE_URL = 'http://localhost:8000'
+const DEFAULT_API = `${window.location.protocol}//${window.location.hostname}:8000`;
+const BASE_URL = process.env.REACT_APP_TRULIGHT_API_URL || DEFAULT_API;
 
 export async function healthCheck() {
   const res = await fetch(`${BASE_URL}/health`);

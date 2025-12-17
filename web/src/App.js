@@ -45,15 +45,6 @@ function App() {
     []
   );
 
-  const handleCommand = async () => {
-    try {
-      const data = await sendCommand("example_action", { foo: "bar" });
-      setResult(data);
-    } catch (e) {
-      setResult({ error: `${e.message} command failed` });
-    }
-  };
-
   const handleColorChange = (nextColor) => {
     setColorState(nextColor);
     setColorThrottled(nextColor);
