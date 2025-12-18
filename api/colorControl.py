@@ -479,6 +479,84 @@ def _animation_loop():
             last_color = color
             continue
 
+        elif mode == "aurora":
+            if not IS_PI or pixels is None:
+                sleep_ms = 40
+                time.sleep(sleep_ms / 1000.0)
+                last_mode = mode
+                last_color = color
+                continue
+
+            t = time.time()
+
+            num_pixels = NUM_LEDS
+            if num_pixels <= 1:
+                pixels.show()
+                sleep_ms = 40
+                time.sleep(sleep_ms / 1000.0)
+                last_mode = mode
+                last_color = color
+                continue
+
+            drift = 0.04 * t
+            shimmer = 0.9 + 0.1 * math.sin(t * 0.7)
+
+            for i in range(num_pixels):
+                x = i / float(num_pixels - 1)
+
+                w1 = math.sin(2 * math.pi * (1.1 * x + 0.06 * t) + 0.9 * math.sin(2 * math.pi * (0.35 * x - 0.02 * t)))
+                w2 = math.sin(2 * math.pi * (2.2 * x - 0.04 * t) + 0.7 * math.sin(2 * math.pi * (0.55 * x + 0.03 * t)))
+                w3 = math.sin(2 * math.pi * (4.6 * x + 0.02 * t) + 0.5 * math.sin(2 * math.pi * (0.90 * x - 0.015 * t)))
+
+                curtain = (w1 * 0.55 + w2 * 0.30 + w3 * 0.15)
+                curtain = curtain * 0.5 + 0.5
+                curtain = max(0.0, min(1.0, curtain))
+                curtain = curtain ** 2.2
+
+                ridges = math.sin(2 * math.pi * (10.0 * x + 0.25 * t + 1.8 * curtain))
+                ridges = (ridges * 0.5 + 0.5)
+                ridges = max(0.0, min(1.0, ridges))
+                ridges = ridges ** 3.0
+
+                noise = math.sin(2 * math.pi * (0.7 * x + 0.09 * t + 0.13 * math.sin(2 * math.pi * (1.6 * x - 0.03 * t))))
+                noise = noise * 0.5 + 0.5
+                noise = max(0.0, min(1.0, noise))
+
+                intensity = 0.06 + 0.86 * curtain * (0.55 + 0.45 * ridges) * (0.70 + 0.30 * noise)
+                intensity *= shimmer
+                intensity = max(0.0, min(1.0, intensity))
+
+                edge = max(0.0, min(1.0, (ridges - 0.55) * 2.2))
+                hue_mix = max(0.0, min(1.0, 0.35 + 0.35 * math.sin(drift + 2 * math.pi * x)))
+
+                g_base = 220
+                g_mid = 255
+                c_base = (20, g_base, 90)
+                c_green = (10, g_mid, 60)
+                c_purple = (140, 40, 190)
+
+                a = intensity
+                r1 = c_base[0] + (c_green[0] - c_base[0]) * hue_mix
+                g1 = c_base[1] + (c_green[1] - c_base[1]) * hue_mix
+                b1 = c_base[2] + (c_green[2] - c_base[2]) * hue_mix
+
+                r2 = r1 + (c_purple[0] - r1) * (edge * 0.85)
+                g2 = g1 + (c_purple[1] - g1) * (edge * 0.60)
+                b2 = b1 + (c_purple[2] - b1) * (edge * 0.90)
+
+                r = int(max(0, min(255, r2 * a)))
+                g = int(max(0, min(255, g2 * a)))
+                b = int(max(0, min(255, b2 * a)))
+
+                pixels[i] = (r, g, b)
+
+            pixels.show()
+            sleep_ms = 25
+            time.sleep(sleep_ms / 1000.0)
+            last_mode = mode
+            last_color = color
+            continue
+
 
         elif mode == "test":
             if not IS_PI or pixels is None:
