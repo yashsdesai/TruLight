@@ -294,7 +294,7 @@ function App() {
                   opacity: 0.7,
                 }}
               >
-                Health checks and example commands against the backend.
+                Control panel for modes, health check, and animations.
               </p>
               <div style={{ display: "flex", gap: 8, flexWrap: isSmallScreen ? "wrap" : "nowrap" }}>
                 <button
