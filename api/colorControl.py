@@ -13,7 +13,7 @@ except ImportError:
     board = None
     neopixel = None
 
-NUM_LEDS = 70
+NUM_LEDS = 60
 pixels = None
 LAMP_COUNT = 2
 
