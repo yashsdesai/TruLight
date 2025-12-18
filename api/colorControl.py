@@ -438,7 +438,7 @@ def _animation_loop():
             continue
         
         elif mode == "cove_warm_test":
-            target_r, target_g, target_b = _kelvin_to_rgb(2200)
+            target_r, target_g, target_b = _kelvin_to_rgb(2600)
 
             if not IS_PI or pixels is None:
                 last_mode = mode
