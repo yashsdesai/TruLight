@@ -396,6 +396,47 @@ def _animation_loop():
             last_color = color
             continue
 
+        elif mode == "cove_warm":
+            target_r, target_g, target_b = _kelvin_to_rgb(3200)
+
+            if not IS_PI or pixels is None:
+                last_mode = mode
+                last_color = color
+                time.sleep(0.04)
+                continue
+
+            if mode != last_mode:
+                phase = 0
+
+            if phase < 100:
+                phase += 1
+                a = phase / 100.0
+                a = a * a * (3.0 - 2.0 * a)
+
+                r = int(target_r * a)
+                g = int(target_g * a)
+                b = int(target_b * a)
+
+                for i in range(NUM_LEDS):
+                    pixels[i] = (r, g, b)
+                pixels.show()
+
+                sleep_ms = 25
+                time.sleep(sleep_ms / 1000.0)
+                last_mode = mode
+                last_color = color
+                continue
+
+            for i in range(NUM_LEDS):
+                pixels[i] = (target_r, target_g, target_b)
+            pixels.show()
+
+            sleep_ms = 80
+            time.sleep(sleep_ms / 1000.0)
+            last_mode = mode
+            last_color = color
+            continue
+
         elif mode == "test":
             if not IS_PI or pixels is None:
                 sleep_ms = 40
