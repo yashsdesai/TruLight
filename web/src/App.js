@@ -454,6 +454,24 @@ function App() {
                       >
                         Cove (Warm)
                       </button>
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          handleSetMode("cove_warm_test");
+                        }}
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: 6,
+                          background: "#1e293b",
+                          color: "#e5e7eb",
+                          textAlign: "left",
+                          border: "1px solid #1f2937",
+                          cursor: "pointer",
+                          fontSize: 13,
+                        }}
+                      >
+                        Cove (Warm) - Test
+                      </button>
                     </div>
                     
                   )}
