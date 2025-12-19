@@ -487,9 +487,6 @@ def _animation_loop():
                 last_color = color
                 continue
 
-            if mode != last_mode:
-                phase = 0
-
             t = time.time()
             n = NUM_LEDS
             if n <= 1:
@@ -500,15 +497,81 @@ def _animation_loop():
                 last_color = color
                 continue
 
+            st = globals().get("_aurora_state")
+            if st is None or mode != last_mode or st.get("n") != n:
+                st = {
+                    "n": n,
+                    "t_last": t,
+                    "phase": 0.0,
+                    "dx1": random.uniform(0.0010, 0.0035),
+                    "dx2": random.uniform(-0.0030, -0.0008),
+                    "dx3": random.uniform(0.0006, 0.0020),
+                    "h_bias": random.uniform(-0.04, 0.04),
+                    "h_rate": random.uniform(0.0005, 0.0016),
+                    "shear": random.uniform(-0.25, 0.25),
+                    "energy": random.uniform(0.55, 0.80),
+                    "energy_target": random.uniform(0.55, 0.85),
+                    "event": 0.0,
+                    "event_t": 0.0,
+                    "event_dur": 0.0,
+                    "event_amp": 0.0,
+                    "pseed": [random.uniform(0.0, 2.0 * math.pi) for _ in range(n)],
+                }
+                globals()["_aurora_state"] = st
+
+            dt = t - st["t_last"]
+            if dt < 0.0:
+                dt = 0.0
+            if dt > 0.2:
+                dt = 0.2
+            st["t_last"] = t
+
+            st["phase"] += 0.6 * dt
+
+            if random.random() < 0.020:
+                st["dx1"] += random.uniform(-0.00035, 0.00035)
+                st["dx2"] += random.uniform(-0.00035, 0.00035)
+                st["dx3"] += random.uniform(-0.00025, 0.00025)
+                st["dx1"] = max(0.0004, min(0.0045, st["dx1"]))
+                st["dx2"] = max(-0.0045, min(-0.0003, st["dx2"]))
+                st["dx3"] = max(0.0002, min(0.0030, st["dx3"]))
+
+            if random.random() < 0.010:
+                st["shear"] += random.uniform(-0.12, 0.12)
+                st["shear"] = max(-0.65, min(0.65, st["shear"]))
+
+            if random.random() < 0.006:
+                st["energy_target"] = random.uniform(0.50, 0.92)
+
+            st["energy"] += (st["energy_target"] - st["energy"]) * (0.35 * dt)
+            st["energy"] = max(0.45, min(1.0, st["energy"]))
+
+            if st["event_dur"] <= 0.0 and random.random() < 0.0025:
+                st["event_dur"] = random.uniform(2.5, 7.5)
+                st["event_t"] = 0.0
+                st["event_amp"] = random.uniform(0.25, 0.85)
+
+            if st["event_dur"] > 0.0:
+                st["event_t"] += dt
+                u = st["event_t"] / st["event_dur"]
+                if u >= 1.0:
+                    st["event_dur"] = 0.0
+                    st["event_t"] = 0.0
+                    st["event"] = 0.0
+                else:
+                    st["event"] = st["event_amp"] * math.sin(math.pi * u)
+            else:
+                st["event"] = 0.0
+
             def _clamp01(v):
                 return 0.0 if v < 0.0 else (1.0 if v > 1.0 else v)
 
-            def _smooth(a):
-                a = _clamp01(a)
-                return a * a * (3.0 - 2.0 * a)
+            def _smooth01(x):
+                x = _clamp01(x)
+                return x * x * (3.0 - 2.0 * x)
 
             def _hsv_to_rgb(h, s, v):
-                h = h % 1.0
+                h = (h % 1.0)
                 s = _clamp01(s)
                 v = _clamp01(v)
                 i = int(h * 6.0)
@@ -531,18 +594,20 @@ def _animation_loop():
                     r, g, b = v, p, q
                 return int(r * 255), int(g * 255), int(b * 255)
 
-            phase += 0.008
-            drift_a = 0.020 * t + 0.7 * math.sin(0.013 * t + 1.2)
-            drift_b = -0.014 * t + 0.6 * math.sin(0.011 * t + 2.0)
-            drift_c = 0.009 * t + 0.5 * math.sin(0.009 * t + 0.4)
+            dx1 = st["dx1"]
+            dx2 = st["dx2"]
+            dx3 = st["dx3"]
+            shear = st["shear"]
+            base_energy = st["energy"]
+            substorm = st["event"]
 
-            def _field(x, f1, f2, f3, s1, s2, s3, o1, o2, o3):
-                return (
-                    0.50
-                    + 0.22 * math.sin(2 * math.pi * (f1 * x + s1 * t) + o1)
-                    + 0.18 * math.sin(2 * math.pi * (f2 * x + s2 * t) + o2)
-                    + 0.10 * math.sin(2 * math.pi * (f3 * x + s3 * t) + o3)
-                )
+            st["h_bias"] += (random.uniform(-1.0, 1.0) * 0.0025) * dt
+            st["h_bias"] = max(-0.10, min(0.10, st["h_bias"]))
+
+            st["h_rate"] += random.uniform(-0.00025, 0.00025) * dt
+            st["h_rate"] = max(0.0003, min(0.0030, st["h_rate"]))
+
+            h_shift = (st["h_rate"] * t + st["h_bias"]) % 1.0
 
             rgb = [(0, 0, 0)] * n
 
@@ -550,76 +615,103 @@ def _animation_loop():
                 x = i / float(n - 1)
 
                 warp = (
-                    0.10 * math.sin(2 * math.pi * (0.18 * x + 0.003 * t) + 1.8 * math.sin(0.007 * t))
-                    + 0.06 * math.sin(2 * math.pi * (0.33 * x - 0.002 * t) + 0.9 * math.sin(0.010 * t + 2.0))
+                    0.08 * math.sin(2 * math.pi * (0.14 * x + dx3 * t) + 1.2 * math.sin(0.10 * t + 0.4))
+                    + 0.05 * math.sin(2 * math.pi * (0.31 * x - 0.65 * dx3 * t) + 0.9 * math.sin(0.13 * t + 2.1))
                 )
-                xw = x + warp
+                xw = x + warp + shear * (x - 0.5) * 0.06
 
-                curtain = _field(xw, 0.55, 1.05, 0.24, 0.010, -0.008, 0.005, 1.2 + drift_a, 2.6 + drift_b, 0.4 + drift_c)
+                curtain = (
+                    0.50
+                    + 0.24 * math.sin(2 * math.pi * (0.55 * xw + dx1 * t) + 0.7 + 0.8 * math.sin(0.06 * t))
+                    + 0.18 * math.sin(2 * math.pi * (1.05 * xw + dx2 * t) + 2.1 + 0.6 * math.sin(0.045 * t + 1.2))
+                    + 0.10 * math.sin(2 * math.pi * (0.24 * xw - 0.55 * dx1 * t) + 3.4 + 0.5 * math.sin(0.03 * t + 2.2))
+                )
                 curtain = _clamp01(curtain)
-                curtain = _smooth((curtain - 0.18) / 0.82)
-                curtain = curtain ** 1.45
+                curtain = _smooth01((curtain - 0.16) / 0.84)
+                curtain = curtain ** 1.20
 
-                bands = _field(xw, 2.2, 1.6, 3.7, -0.020, 0.014, -0.010, 2.1 + phase, 0.3 + drift_b, 3.3 + drift_a)
-                bands = _clamp01(bands)
-                bands = _smooth((bands - 0.35) / 0.65)
-                bands = bands ** 1.65
+                folds = (
+                    0.50
+                    + 0.22 * math.sin(2 * math.pi * (2.1 * xw - 2.8 * dx1 * t) + 1.3 + st["phase"])
+                    + 0.14 * math.sin(2 * math.pi * (1.6 * xw + 2.1 * dx2 * t) + 2.7 - 0.6 * st["phase"])
+                    + 0.08 * math.sin(2 * math.pi * (3.7 * xw - 1.7 * dx3 * t) + 0.4 + 0.4 * math.sin(0.05 * t))
+                )
+                folds = _clamp01(folds)
+                folds = _smooth01((folds - 0.26) / 0.74)
+                folds = folds ** 1.55
 
-                rays_f = 7.0 + 9.0 * (0.5 + 0.5 * math.sin(0.006 * t + 3.0 * curtain))
-                rays = 0.5 + 0.5 * math.sin(2 * math.pi * (rays_f * xw - 0.060 * t) + 5.0 * bands + 1.7 * curtain)
+                ray_f = 7.0 + 10.0 * _smooth01(0.25 + 0.75 * curtain)
+                rays = 0.5 + 0.5 * math.sin(2 * math.pi * (ray_f * xw - 0.060 * t) + 5.2 * folds + 1.6 * curtain + 0.35 * math.sin(0.08 * t))
                 rays = _clamp01(rays)
-                rays = _smooth((rays - 0.42) / 0.58)
-                rays = rays ** 2.35
+                rays = _smooth01((rays - 0.38) / 0.62)
+                rays = rays ** 2.05
 
-                shimmer = 0.5 + 0.5 * math.sin(2 * math.pi * (18.0 * xw - 0.22 * t) + 2.2 * rays + 1.1 * bands)
+                shimmer = 0.5 + 0.5 * math.sin(2 * math.pi * (18.0 * xw - 0.20 * t) + 2.4 * rays + 1.4 * folds + 0.35 * math.sin(st["pseed"][i] + 0.12 * t))
                 shimmer = _clamp01(shimmer)
-                shimmer = 0.82 + 0.18 * (shimmer ** 2.6)
+                shimmer = 0.78 + 0.22 * (shimmer ** 2.6)
 
-                burst = 0.65 + 0.35 * (0.5 + 0.5 * math.sin(0.030 * t + 1.7 * math.sin(0.011 * t + 1.1)))
-                burst = burst ** 1.6
-
-                intensity = (0.06 + 0.94 * curtain) * (0.18 + 0.82 * bands) * (0.28 + 0.72 * rays)
-                intensity *= shimmer * burst
+                intensity = (0.07 + 0.93 * curtain) * (0.22 + 0.78 * folds) * (0.32 + 0.68 * rays)
+                intensity *= shimmer
+                intensity *= (0.55 + 0.65 * base_energy)
+                intensity *= (1.0 + 0.70 * substorm)
                 intensity = _clamp01(intensity)
-                intensity = intensity ** 1.10
+                intensity = intensity ** 0.90
 
-                hue = _field(xw, 0.20, 0.11, 0.07, 0.004, -0.003, 0.002, 0.7 + phase, 2.1 + drift_a, 4.4 + drift_b)
-                hue = _clamp01(hue)
+                hue_wave = (
+                    0.50
+                    + 0.22 * math.sin(2 * math.pi * (0.18 * xw + 0.0020 * t) + 0.7 + 0.7 * st["phase"])
+                    + 0.14 * math.sin(2 * math.pi * (0.11 * xw - 0.0016 * t) + 2.1 - 0.4 * st["phase"])
+                    + 0.10 * math.sin(2 * math.pi * (0.07 * xw + 0.0011 * t) + 4.4 + 0.3 * math.sin(0.05 * t))
+                )
+                hue_wave = _clamp01(hue_wave)
 
-                h_green = 0.30 + 0.10 * (hue - 0.5)
-                h_cyan  = 0.48 + 0.08 * (hue - 0.5)
-                h_blue  = 0.62 + 0.06 * (hue - 0.5)
+                h_green = 0.30 + 0.06 * (hue_wave - 0.5)
+                h_cyan  = 0.48 + 0.08 * (hue_wave - 0.5)
+                h_blue  = 0.62 + 0.06 * (hue_wave - 0.5)
 
-                mix_gc = _smooth((0.55 + 0.35 * math.sin(2 * math.pi * (0.10 * xw + 0.0025 * t) + 0.9)) )
-                mix_cb = _smooth((0.55 + 0.35 * math.sin(2 * math.pi * (0.07 * xw - 0.0020 * t) + 2.1)) )
+                base_mix = _smooth01(0.20 + 0.80 * hue_wave)
+                h0 = (1.0 - base_mix) * h_green + base_mix * h_blue
+                h0 = 0.55 * h0 + 0.45 * h_cyan
+                h0 = (h0 + 0.10 * (h_shift - 0.5)) % 1.0
 
-                h0 = (1.0 - mix_gc) * h_green + mix_gc * h_cyan
-                h0 = (1.0 - mix_cb) * h0 + mix_cb * h_blue
+                bloom = (
+                    0.50
+                    + 0.22 * math.sin(2 * math.pi * (0.16 * xw + 0.0014 * t) + 1.6 + 0.9 * st["phase"])
+                    + 0.16 * math.sin(2 * math.pi * (0.09 * xw + 0.0011 * t) + 3.9 + 0.6 * math.sin(0.03 * t))
+                    + 0.10 * math.sin(2 * math.pi * (0.05 * xw - 0.0009 * t) + 0.2 + 0.4 * math.sin(0.04 * t + 1.2))
+                )
+                bloom = _clamp01(bloom)
 
-                pink_field = _field(xw, 0.16, 0.09, 0.05, 0.003, 0.002, -0.001, 1.6 + drift_c, 3.9 + drift_a, 0.2 + drift_b)
-                pink_field = _clamp01(pink_field)
+                activity = _smooth01((intensity - 0.38) / 0.62)
+                sub = _clamp01(substorm * 1.15)
 
-                pink_gate = _smooth((intensity - 0.52) / 0.48) * _smooth((pink_field - 0.56) / 0.44)
-                purple_gate = _smooth((intensity - 0.62) / 0.38) * _smooth((rays - 0.52) / 0.48) * _smooth((pink_field - 0.48) / 0.52)
-                yellow_gate = _smooth((intensity - 0.58) / 0.42) * _smooth((bands - 0.50) / 0.50) * _smooth((pink_field - 0.62) / 0.38)
+                pink_gate = activity * _smooth01((bloom - 0.46) / 0.54) * (0.35 + 0.65 * sub)
+                purple_gate = activity * _smooth01((rays - 0.45) / 0.55) * _smooth01((bloom - 0.40) / 0.60) * (0.25 + 0.75 * sub)
+                yellow_gate = activity * _smooth01((folds - 0.40) / 0.60) * _smooth01((bloom - 0.52) / 0.48) * (0.15 + 0.85 * sub)
 
-                h_pink = 0.92 - 0.05 * (0.5 + 0.5 * math.sin(2 * math.pi * (0.06 * xw + 0.0015 * t) + 0.4))
-                h_purple = 0.78 + 0.04 * (0.5 + 0.5 * math.sin(2 * math.pi * (0.05 * xw - 0.0012 * t) + 2.4))
-                h_yellow = 0.14 + 0.03 * (0.5 + 0.5 * math.sin(2 * math.pi * (0.04 * xw + 0.0010 * t) + 1.2))
+                pink_gate *= 1.10
+                purple_gate *= 0.90
+                yellow_gate *= 0.65
 
-                h1 = (1.0 - yellow_gate) * h0 + yellow_gate * h_yellow
-                h1 = (1.0 - pink_gate) * h1 + pink_gate * h_pink
-                h1 = (1.0 - purple_gate) * h1 + purple_gate * h_purple
-                h1 = h1 % 1.0
+                h_pink = (0.92 - 0.06 * (0.5 + 0.5 * math.sin(2 * math.pi * (0.06 * xw + 0.0012 * t) + 0.4 + 0.5 * st["phase"]))) % 1.0
+                h_purple = (0.78 + 0.05 * (0.5 + 0.5 * math.sin(2 * math.pi * (0.05 * xw - 0.0010 * t) + 2.4 - 0.4 * st["phase"]))) % 1.0
+                h_yellow = 0.14 + 0.03 * (0.5 + 0.5 * math.sin(2 * math.pi * (0.04 * xw + 0.0008 * t) + 1.2 + 0.3 * st["phase"]))
+                h_yellow = _clamp01(h_yellow)
 
-                s = 0.45 + 0.50 * _smooth((intensity - 0.10) / 0.90)
+                h = h0
+                h = (1.0 - yellow_gate) * h + yellow_gate * h_yellow
+                h = (1.0 - pink_gate) * h + pink_gate * h_pink
+                h = (1.0 - purple_gate) * h + purple_gate * h_purple
+                h = h % 1.0
+
+                s = 0.55 + 0.40 * _smooth01((intensity - 0.08) / 0.92)
                 v = 0.10 + 0.90 * intensity
-                v = v ** 0.85
+                v = v ** 0.80
 
-                r, g, b = _hsv_to_rgb(h1, s, v)
+                r, g, b = _hsv_to_rgb(h, s, v)
                 rgb[i] = (r, g, b)
 
-            w0, w1, w2 = 1, 3, 6
+            w0, w1, w2 = 1, 3, 7
             denom = (w0 + w1 + w2 + w1 + w0)
             for i in range(n):
                 r0, g0, b0 = rgb[max(0, i - 2)]
