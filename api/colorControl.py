@@ -497,71 +497,43 @@ def _animation_loop():
                 last_color = color
                 continue
 
-            st = globals().get("_aurora_state")
+            st = globals().get("_aurora_state_v3")
             if st is None or mode != last_mode or st.get("n") != n:
                 st = {
                     "n": n,
                     "t_last": t,
-                    "phase": 0.0,
-                    "dx1": random.uniform(0.0010, 0.0035),
-                    "dx2": random.uniform(-0.0030, -0.0008),
-                    "dx3": random.uniform(0.0006, 0.0020),
-                    "h_bias": random.uniform(-0.04, 0.04),
-                    "h_rate": random.uniform(0.0005, 0.0016),
+                    "p": random.uniform(0.0, 6.0),
+                    "dx_a": random.uniform(0.0014, 0.0024),
+                    "dx_b": random.uniform(-0.0020, -0.0011),
+                    "dx_c": random.uniform(0.0007, 0.0015),
+                    "warp_a": random.uniform(0.05, 0.09),
+                    "warp_b": random.uniform(0.03, 0.07),
                     "shear": random.uniform(-0.25, 0.25),
-                    "energy": random.uniform(0.55, 0.80),
-                    "energy_target": random.uniform(0.55, 0.85),
+                    "energy": random.uniform(0.60, 0.78),
+                    "energy_target": random.uniform(0.62, 0.88),
                     "event": 0.0,
                     "event_t": 0.0,
                     "event_dur": 0.0,
                     "event_amp": 0.0,
-                    "pseed": [random.uniform(0.0, 2.0 * math.pi) for _ in range(n)],
+                    "prev": [(0, 0, 0)] * n,
+                    "h_bias": random.uniform(-0.03, 0.03),
+                    "h_bias_target": random.uniform(-0.05, 0.05),
+                    "h_bias_t": 0.0,
+                    "h_bias_dur": random.uniform(6.0, 16.0),
+                    "pink_gain": 1.35,
+                    "purple_gain": 1.10,
+                    "yellow_gain": 0.75,
+                    "base_v_min": 0.10,
+                    "base_v_pow": 0.92,
                 }
-                globals()["_aurora_state"] = st
+                globals()["_aurora_state_v3"] = st
 
             dt = t - st["t_last"]
             if dt < 0.0:
                 dt = 0.0
-            if dt > 0.2:
-                dt = 0.2
+            if dt > 0.05:
+                dt = 0.05
             st["t_last"] = t
-
-            st["phase"] += 0.6 * dt
-
-            if random.random() < 0.020:
-                st["dx1"] += random.uniform(-0.00035, 0.00035)
-                st["dx2"] += random.uniform(-0.00035, 0.00035)
-                st["dx3"] += random.uniform(-0.00025, 0.00025)
-                st["dx1"] = max(0.0004, min(0.0045, st["dx1"]))
-                st["dx2"] = max(-0.0045, min(-0.0003, st["dx2"]))
-                st["dx3"] = max(0.0002, min(0.0030, st["dx3"]))
-
-            if random.random() < 0.010:
-                st["shear"] += random.uniform(-0.12, 0.12)
-                st["shear"] = max(-0.65, min(0.65, st["shear"]))
-
-            if random.random() < 0.006:
-                st["energy_target"] = random.uniform(0.50, 0.92)
-
-            st["energy"] += (st["energy_target"] - st["energy"]) * (0.35 * dt)
-            st["energy"] = max(0.45, min(1.0, st["energy"]))
-
-            if st["event_dur"] <= 0.0 and random.random() < 0.0025:
-                st["event_dur"] = random.uniform(2.5, 7.5)
-                st["event_t"] = 0.0
-                st["event_amp"] = random.uniform(0.25, 0.85)
-
-            if st["event_dur"] > 0.0:
-                st["event_t"] += dt
-                u = st["event_t"] / st["event_dur"]
-                if u >= 1.0:
-                    st["event_dur"] = 0.0
-                    st["event_t"] = 0.0
-                    st["event"] = 0.0
-                else:
-                    st["event"] = st["event_amp"] * math.sin(math.pi * u)
-            else:
-                st["event"] = 0.0
 
             def _clamp01(v):
                 return 0.0 if v < 0.0 else (1.0 if v > 1.0 else v)
@@ -594,20 +566,61 @@ def _animation_loop():
                     r, g, b = v, p, q
                 return int(r * 255), int(g * 255), int(b * 255)
 
-            dx1 = st["dx1"]
-            dx2 = st["dx2"]
-            dx3 = st["dx3"]
+            st["p"] += 0.22 * dt
+
+            if random.random() < 0.010 * dt:
+                st["energy_target"] = random.uniform(0.62, 0.95)
+
+            st["energy"] += (st["energy_target"] - st["energy"]) * (0.35 * dt)
+            st["energy"] = max(0.50, min(1.0, st["energy"]))
+
+            if random.random() < 0.006 * dt:
+                st["shear"] += random.uniform(-0.10, 0.10)
+                st["shear"] = max(-0.55, min(0.55, st["shear"]))
+
+            if random.random() < 0.010:
+                st["dx_a"] += random.uniform(-0.00008, 0.00008)
+                st["dx_b"] += random.uniform(-0.00008, 0.00008)
+                st["dx_c"] += random.uniform(-0.00005, 0.00005)
+                st["dx_a"] = max(0.0006, min(0.0040, st["dx_a"]))
+                st["dx_b"] = max(-0.0040, min(-0.0004, st["dx_b"]))
+                st["dx_c"] = max(0.0003, min(0.0030, st["dx_c"]))
+
+            if st["event_dur"] <= 0.0 and random.random() < 0.0016 * dt:
+                st["event_dur"] = random.uniform(5.0, 14.0)
+                st["event_t"] = 0.0
+                st["event_amp"] = random.uniform(0.30, 0.95)
+
+            if st["event_dur"] > 0.0:
+                st["event_t"] += dt
+                u = st["event_t"] / st["event_dur"]
+                if u >= 1.0:
+                    st["event_dur"] = 0.0
+                    st["event_t"] = 0.0
+                    st["event"] = 0.0
+                else:
+                    st["event"] = st["event_amp"] * (math.sin(math.pi * u) ** 1.6)
+            else:
+                st["event"] = 0.0
+
+            st["h_bias_t"] += dt
+            if st["h_bias_t"] >= st["h_bias_dur"]:
+                st["h_bias_t"] = 0.0
+                st["h_bias_dur"] = random.uniform(6.0, 16.0)
+                st["h_bias_target"] = random.uniform(-0.06, 0.06)
+            hb = st["h_bias"]
+            hb_tgt = st["h_bias_target"]
+            st["h_bias"] = hb + (hb_tgt - hb) * (0.20 * dt)
+
+            dx_a = st["dx_a"]
+            dx_b = st["dx_b"]
+            dx_c = st["dx_c"]
+            warp_a = st["warp_a"]
+            warp_b = st["warp_b"]
             shear = st["shear"]
-            base_energy = st["energy"]
-            substorm = st["event"]
 
-            st["h_bias"] += (random.uniform(-1.0, 1.0) * 0.0025) * dt
-            st["h_bias"] = max(-0.10, min(0.10, st["h_bias"]))
-
-            st["h_rate"] += random.uniform(-0.00025, 0.00025) * dt
-            st["h_rate"] = max(0.0003, min(0.0030, st["h_rate"]))
-
-            h_shift = (st["h_rate"] * t + st["h_bias"]) % 1.0
+            base_energy = 0.60 + 0.55 * st["energy"]
+            substorm = 1.0 + 0.95 * st["event"]
 
             rgb = [(0, 0, 0)] * n
 
@@ -615,104 +628,90 @@ def _animation_loop():
                 x = i / float(n - 1)
 
                 warp = (
-                    0.08 * math.sin(2 * math.pi * (0.14 * x + dx3 * t) + 1.2 * math.sin(0.10 * t + 0.4))
-                    + 0.05 * math.sin(2 * math.pi * (0.31 * x - 0.65 * dx3 * t) + 0.9 * math.sin(0.13 * t + 2.1))
+                    warp_a * math.sin(2 * math.pi * (0.12 * x + dx_c * t) + 1.2 + 0.25 * math.sin(0.045 * t + 0.4))
+                    + warp_b * math.sin(2 * math.pi * (0.27 * x - 0.62 * dx_c * t) + 0.7 + 0.20 * math.sin(0.038 * t + 2.1))
                 )
-                xw = x + warp + shear * (x - 0.5) * 0.06
+                xw = x + warp + shear * (x - 0.5) * 0.05
 
                 curtain = (
                     0.50
-                    + 0.24 * math.sin(2 * math.pi * (0.55 * xw + dx1 * t) + 0.7 + 0.8 * math.sin(0.06 * t))
-                    + 0.18 * math.sin(2 * math.pi * (1.05 * xw + dx2 * t) + 2.1 + 0.6 * math.sin(0.045 * t + 1.2))
-                    + 0.10 * math.sin(2 * math.pi * (0.24 * xw - 0.55 * dx1 * t) + 3.4 + 0.5 * math.sin(0.03 * t + 2.2))
+                    + 0.28 * math.sin(2 * math.pi * (0.42 * xw + dx_a * t) + 0.9 + 0.22 * math.sin(0.020 * t + 1.1))
+                    + 0.18 * math.sin(2 * math.pi * (0.86 * xw + dx_b * t) + 2.2 + 0.18 * math.sin(0.018 * t + 2.4))
+                    + 0.10 * math.sin(2 * math.pi * (0.20 * xw - 0.52 * dx_a * t) + 3.4 + 0.15 * math.sin(0.016 * t + 0.7))
                 )
                 curtain = _clamp01(curtain)
-                curtain = _smooth01((curtain - 0.16) / 0.84)
-                curtain = curtain ** 1.20
+                curtain = _smooth01((curtain - 0.12) / 0.88)
+                curtain = curtain ** 1.05
 
                 folds = (
                     0.50
-                    + 0.22 * math.sin(2 * math.pi * (2.1 * xw - 2.8 * dx1 * t) + 1.3 + st["phase"])
-                    + 0.14 * math.sin(2 * math.pi * (1.6 * xw + 2.1 * dx2 * t) + 2.7 - 0.6 * st["phase"])
-                    + 0.08 * math.sin(2 * math.pi * (3.7 * xw - 1.7 * dx3 * t) + 0.4 + 0.4 * math.sin(0.05 * t))
+                    + 0.22 * math.sin(2 * math.pi * (1.35 * xw - 1.8 * dx_a * t) + 1.1 + st["p"])
+                    + 0.16 * math.sin(2 * math.pi * (2.10 * xw + 1.5 * dx_b * t) + 2.6 - 0.45 * st["p"])
+                    + 0.10 * math.sin(2 * math.pi * (2.85 * xw - 1.1 * dx_c * t) + 0.4 + 0.22 * math.sin(0.018 * t + 1.7))
                 )
                 folds = _clamp01(folds)
-                folds = _smooth01((folds - 0.26) / 0.74)
-                folds = folds ** 1.55
+                folds = _smooth01((folds - 0.22) / 0.78)
+                folds = folds ** 1.35
 
-                ray_f = 7.0 + 10.0 * _smooth01(0.25 + 0.75 * curtain)
-                rays = 0.5 + 0.5 * math.sin(2 * math.pi * (ray_f * xw - 0.060 * t) + 5.2 * folds + 1.6 * curtain + 0.35 * math.sin(0.08 * t))
+                ray_f = 3.4 + 4.2 * _smooth01(0.25 + 0.75 * curtain)
+                rays = 0.5 + 0.5 * math.sin(2 * math.pi * (ray_f * xw - 0.018 * t) + 3.6 * folds + 1.0 * curtain)
                 rays = _clamp01(rays)
-                rays = _smooth01((rays - 0.38) / 0.62)
-                rays = rays ** 2.05
+                rays = _smooth01((rays - 0.42) / 0.58)
+                rays = rays ** 1.55
 
-                shimmer = 0.5 + 0.5 * math.sin(2 * math.pi * (18.0 * xw - 0.20 * t) + 2.4 * rays + 1.4 * folds + 0.35 * math.sin(st["pseed"][i] + 0.12 * t))
+                shimmer = 0.55 + 0.45 * (0.5 + 0.5 * math.sin(2 * math.pi * (6.0 * xw - 0.030 * t) + 1.1 * folds + 0.9 * curtain))
                 shimmer = _clamp01(shimmer)
-                shimmer = 0.78 + 0.22 * (shimmer ** 2.6)
+                shimmer = 0.86 + 0.14 * (shimmer ** 1.8)
 
-                intensity = (0.07 + 0.93 * curtain) * (0.22 + 0.78 * folds) * (0.32 + 0.68 * rays)
-                intensity *= shimmer
-                intensity *= (0.55 + 0.65 * base_energy)
-                intensity *= (1.0 + 0.70 * substorm)
+                intensity = (0.10 + 0.90 * curtain) * (0.25 + 0.75 * folds) * (0.40 + 0.60 * rays)
+                intensity *= shimmer * base_energy * substorm
                 intensity = _clamp01(intensity)
                 intensity = intensity ** 0.90
 
-                hue_wave = (
+                hue_ripple = (
                     0.50
-                    + 0.22 * math.sin(2 * math.pi * (0.18 * xw + 0.0020 * t) + 0.7 + 0.7 * st["phase"])
-                    + 0.14 * math.sin(2 * math.pi * (0.11 * xw - 0.0016 * t) + 2.1 - 0.4 * st["phase"])
-                    + 0.10 * math.sin(2 * math.pi * (0.07 * xw + 0.0011 * t) + 4.4 + 0.3 * math.sin(0.05 * t))
+                    + 0.26 * math.sin(2 * math.pi * (0.13 * xw + 0.0009 * t) + 0.7 + 0.40 * st["p"])
+                    + 0.16 * math.sin(2 * math.pi * (0.08 * xw - 0.0007 * t) + 2.0 - 0.30 * st["p"])
+                    + 0.12 * math.sin(2 * math.pi * (0.05 * xw + 0.0005 * t) + 4.1 + 0.20 * math.sin(0.015 * t))
                 )
-                hue_wave = _clamp01(hue_wave)
+                hue_ripple = _clamp01(hue_ripple)
 
-                h_green = 0.30 + 0.06 * (hue_wave - 0.5)
-                h_cyan  = 0.48 + 0.08 * (hue_wave - 0.5)
-                h_blue  = 0.62 + 0.06 * (hue_wave - 0.5)
+                h0 = 0.24 + 0.44 * hue_ripple + st["h_bias"]
+                h0 = h0 % 1.0
 
-                base_mix = _smooth01(0.20 + 0.80 * hue_wave)
-                h0 = (1.0 - base_mix) * h_green + base_mix * h_blue
-                h0 = 0.55 * h0 + 0.45 * h_cyan
-                h0 = (h0 + 0.10 * (h_shift - 0.5)) % 1.0
+                activity = _smooth01((intensity - 0.22) / 0.78)
 
                 bloom = (
                     0.50
-                    + 0.22 * math.sin(2 * math.pi * (0.16 * xw + 0.0014 * t) + 1.6 + 0.9 * st["phase"])
-                    + 0.16 * math.sin(2 * math.pi * (0.09 * xw + 0.0011 * t) + 3.9 + 0.6 * math.sin(0.03 * t))
-                    + 0.10 * math.sin(2 * math.pi * (0.05 * xw - 0.0009 * t) + 0.2 + 0.4 * math.sin(0.04 * t + 1.2))
+                    + 0.26 * math.sin(2 * math.pi * (0.11 * xw + 0.0007 * t) + 1.3 + 0.55 * st["p"])
+                    + 0.18 * math.sin(2 * math.pi * (0.07 * xw - 0.0005 * t) + 3.1 - 0.35 * st["p"])
                 )
                 bloom = _clamp01(bloom)
 
-                activity = _smooth01((intensity - 0.38) / 0.62)
-                sub = _clamp01(substorm * 1.15)
+                pink_gate = activity * _smooth01((bloom - 0.42) / 0.58) * _smooth01((st["event"] + 0.22) / 1.22) * st["pink_gain"]
+                purple_gate = activity * _smooth01((rays - 0.40) / 0.60) * _smooth01((bloom - 0.38) / 0.62) * _smooth01((st["event"] + 0.10) / 1.10) * st["purple_gain"]
+                yellow_gate = activity * _smooth01((folds - 0.34) / 0.66) * _smooth01((bloom - 0.52) / 0.48) * _smooth01((st["event"] + 0.16) / 1.16) * st["yellow_gain"]
 
-                pink_gate = activity * _smooth01((bloom - 0.46) / 0.54) * (0.35 + 0.65 * sub)
-                purple_gate = activity * _smooth01((rays - 0.45) / 0.55) * _smooth01((bloom - 0.40) / 0.60) * (0.25 + 0.75 * sub)
-                yellow_gate = activity * _smooth01((folds - 0.40) / 0.60) * _smooth01((bloom - 0.52) / 0.48) * (0.15 + 0.85 * sub)
-
-                pink_gate *= 1.10
-                purple_gate *= 0.90
-                yellow_gate *= 0.65
-
-                h_pink = (0.92 - 0.06 * (0.5 + 0.5 * math.sin(2 * math.pi * (0.06 * xw + 0.0012 * t) + 0.4 + 0.5 * st["phase"]))) % 1.0
-                h_purple = (0.78 + 0.05 * (0.5 + 0.5 * math.sin(2 * math.pi * (0.05 * xw - 0.0010 * t) + 2.4 - 0.4 * st["phase"]))) % 1.0
-                h_yellow = 0.14 + 0.03 * (0.5 + 0.5 * math.sin(2 * math.pi * (0.04 * xw + 0.0008 * t) + 1.2 + 0.3 * st["phase"]))
-                h_yellow = _clamp01(h_yellow)
+                pink_gate = _clamp01(pink_gate)
+                purple_gate = _clamp01(purple_gate)
+                yellow_gate = _clamp01(yellow_gate)
 
                 h = h0
-                h = (1.0 - yellow_gate) * h + yellow_gate * h_yellow
-                h = (1.0 - pink_gate) * h + pink_gate * h_pink
-                h = (1.0 - purple_gate) * h + purple_gate * h_purple
+                h = (1.0 - yellow_gate) * h + yellow_gate * 0.14
+                h = (1.0 - pink_gate) * h + pink_gate * 0.92
+                h = (1.0 - purple_gate) * h + purple_gate * 0.78
                 h = h % 1.0
 
-                s = 0.55 + 0.40 * _smooth01((intensity - 0.08) / 0.92)
-                v = 0.10 + 0.90 * intensity
-                v = v ** 0.80
+                s = 0.58 + 0.38 * _smooth01((intensity - 0.06) / 0.94)
+                v = st["base_v_min"] + (1.0 - st["base_v_min"]) * intensity
+                v = v ** st["base_v_pow"]
 
                 r, g, b = _hsv_to_rgb(h, s, v)
                 rgb[i] = (r, g, b)
 
-            w0, w1, w2 = 1, 3, 7
+            w0, w1, w2 = 1, 4, 9
             denom = (w0 + w1 + w2 + w1 + w0)
+            blur = [(0, 0, 0)] * n
             for i in range(n):
                 r0, g0, b0 = rgb[max(0, i - 2)]
                 r1, g1, b1 = rgb[max(0, i - 1)]
@@ -722,7 +721,26 @@ def _animation_loop():
                 r = (w0 * r0 + w1 * r1 + w2 * r2 + w1 * r3 + w0 * r4) // denom
                 g = (w0 * g0 + w1 * g1 + w2 * g2 + w1 * g3 + w0 * g4) // denom
                 b = (w0 * b0 + w1 * b1 + w2 * b2 + w1 * b3 + w0 * b4) // denom
-                pixels[i] = (int(r), int(g), int(b))
+                blur[i] = (int(r), int(g), int(b))
+
+            a = 1.0 - math.exp(-dt / 0.35)
+            if a < 0.03:
+                a = 0.03
+            if a > 0.10:
+                a = 0.10
+
+            prev = st["prev"]
+            out = [(0, 0, 0)] * n
+            for i in range(n):
+                pr, pg, pb = prev[i]
+                nr, ng, nb = blur[i]
+                rr = int(pr + (nr - pr) * a)
+                gg = int(pg + (ng - pg) * a)
+                bb = int(pb + (nb - pb) * a)
+                out[i] = (rr, gg, bb)
+                pixels[i] = out[i]
+
+            st["prev"] = out
 
             pixels.show()
             sleep_ms = 25
