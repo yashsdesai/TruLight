@@ -654,6 +654,30 @@ def _kelvin_to_rgb(k):
 
     return (int(r), int(g), int(b))
 
+def _hsv_to_rgb(h, s, v):
+    h = h % 1.0
+    i = int(h * 6.0)
+    f = (h * 6.0) - i
+    p = v * (1.0 - s)
+    q = v * (1.0 - f * s)
+    t = v * (1.0 - (1.0 - f) * s)
+    i = i % 6
+
+    if i == 0:
+        r, g, b = v, t, p
+    elif i == 1:
+        r, g, b = q, v, p
+    elif i == 2:
+        r, g, b = p, v, t
+    elif i == 3:
+        r, g, b = p, q, v
+    elif i == 4:
+        r, g, b = t, p, v
+    else:
+        r, g, b = v, p, q
+
+    return r, g, b
+
 def set_mode(mode):
     global current_mode, prev_color, prev_mode
     _ensure_loop()
