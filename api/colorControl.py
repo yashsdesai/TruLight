@@ -488,8 +488,8 @@ def _animation_loop():
                 continue
 
             t = time.time()
-
             num_pixels = NUM_LEDS
+
             if num_pixels <= 1:
                 pixels.show()
                 sleep_ms = 40
@@ -498,57 +498,103 @@ def _animation_loop():
                 last_color = color
                 continue
 
-            drift = 0.04 * t
-            shimmer = 0.9 + 0.1 * math.sin(t * 0.7)
+            def _clamp01(v):
+                return 0.0 if v < 0.0 else (1.0 if v > 1.0 else v)
+
+            def _smoothstep(a, b, x):
+                x = _clamp01((x - a) / (b - a)) if b != a else 0.0
+                return x * x * (3.0 - 2.0 * x)
+
+            def _hsv_to_rgb(h, s, v):
+                h = h % 1.0
+                s = _clamp01(s)
+                v = _clamp01(v)
+                i = int(h * 6.0)
+                f = h * 6.0 - i
+                p = v * (1.0 - s)
+                q = v * (1.0 - f * s)
+                t2 = v * (1.0 - (1.0 - f) * s)
+                i = i % 6
+                if i == 0:
+                    r, g, b = v, t2, p
+                elif i == 1:
+                    r, g, b = q, v, p
+                elif i == 2:
+                    r, g, b = p, v, t2
+                elif i == 3:
+                    r, g, b = p, q, v
+                elif i == 4:
+                    r, g, b = t2, p, v
+                else:
+                    r, g, b = v, p, q
+                return int(r * 255), int(g * 255), int(b * 255)
+
+            phase += 0.006
+            burst = 0.65 + 0.35 * (0.5 + 0.5 * math.sin(t * 0.03 + 1.7 * math.sin(t * 0.009)))
+            burst = burst ** 1.4
 
             for i in range(num_pixels):
                 x = i / float(num_pixels - 1)
 
-                w1 = math.sin(2 * math.pi * (1.1 * x + 0.06 * t) + 0.9 * math.sin(2 * math.pi * (0.35 * x - 0.02 * t)))
-                w2 = math.sin(2 * math.pi * (2.2 * x - 0.04 * t) + 0.7 * math.sin(2 * math.pi * (0.55 * x + 0.03 * t)))
-                w3 = math.sin(2 * math.pi * (4.6 * x + 0.02 * t) + 0.5 * math.sin(2 * math.pi * (0.90 * x - 0.015 * t)))
+                c1 = math.sin(2 * math.pi * (0.55 * x + 0.020 * t) + 0.9 * math.sin(2 * math.pi * (0.14 * x - 0.006 * t + 0.15 * math.sin(t * 0.012))))
+                c2 = math.sin(2 * math.pi * (1.05 * x - 0.015 * t) + 0.7 * math.sin(2 * math.pi * (0.26 * x + 0.008 * t)))
+                curtain = (0.62 * c1 + 0.38 * c2) * 0.5 + 0.5
+                curtain = _clamp01(curtain)
+                curtain = curtain ** 1.7
 
-                curtain = (w1 * 0.55 + w2 * 0.30 + w3 * 0.15)
-                curtain = curtain * 0.5 + 0.5
-                curtain = max(0.0, min(1.0, curtain))
-                curtain = curtain ** 2.2
+                band_phase = 0.20 * math.sin(2 * math.pi * (0.11 * x + 0.004 * t) + phase) + 0.13 * math.sin(2 * math.pi * (0.23 * x - 0.006 * t))
+                bands = math.sin(2 * math.pi * (7.5 * x - 0.22 * t + 0.85 * curtain + band_phase))
+                bands = bands * 0.5 + 0.5
+                bands = _clamp01(bands)
 
-                ridges = math.sin(2 * math.pi * (10.0 * x + 0.25 * t + 1.8 * curtain))
-                ridges = (ridges * 0.5 + 0.5)
-                ridges = max(0.0, min(1.0, ridges))
-                ridges = ridges ** 3.0
+                ridges = _smoothstep(0.45, 0.95, bands)
+                ridges = ridges ** 2.1
 
-                noise = math.sin(2 * math.pi * (0.7 * x + 0.09 * t + 0.13 * math.sin(2 * math.pi * (1.6 * x - 0.03 * t))))
-                noise = noise * 0.5 + 0.5
-                noise = max(0.0, min(1.0, noise))
+                shimmer = math.sin(2 * math.pi * (22.0 * x - 0.90 * t + 0.9 * ridges))
+                shimmer = shimmer * 0.5 + 0.5
+                shimmer = _clamp01(shimmer)
+                shimmer = shimmer ** 3.2
 
-                intensity = 0.06 + 0.86 * curtain * (0.55 + 0.45 * ridges) * (0.70 + 0.30 * noise)
-                intensity *= shimmer
-                intensity = max(0.0, min(1.0, intensity))
+                base_intensity = (0.05 + 0.85 * curtain) * (0.25 + 0.75 * ridges)
+                micro = 0.82 + 0.18 * shimmer
+                intensity = base_intensity * micro * burst
+                intensity = _clamp01(intensity)
+                intensity = intensity ** 1.35
 
-                edge = max(0.0, min(1.0, (ridges - 0.55) * 2.2))
-                hue_mix = max(0.0, min(1.0, 0.35 + 0.35 * math.sin(drift + 2 * math.pi * x)))
+                hue_field = 0.5 + 0.5 * math.sin(2 * math.pi * (0.18 * x + 0.006 * t) + 0.8 * math.sin(2 * math.pi * (0.07 * x - 0.003 * t)) + phase)
+                hue_field = _clamp01(hue_field)
 
-                g_base = 220
-                g_mid = 255
-                c_base = (20, g_base, 90)
-                c_green = (10, g_mid, 60)
-                c_purple = (140, 40, 190)
+                h_green = 0.30 + 0.06 * (hue_field - 0.5) + 0.03 * math.sin(2 * math.pi * (0.33 * x - 0.004 * t))
+                h_green = _clamp01(h_green)
 
-                a = intensity
-                r1 = c_base[0] + (c_green[0] - c_base[0]) * hue_mix
-                g1 = c_base[1] + (c_green[1] - c_base[1]) * hue_mix
-                b1 = c_base[2] + (c_green[2] - c_base[2]) * hue_mix
+                warm_gate = _smoothstep(0.20, 0.85, curtain) * _smoothstep(0.35, 0.95, ridges)
+                h_yellow = 0.15 + 0.03 * math.sin(2 * math.pi * (0.12 * x + 0.005 * t) + 0.7)
+                h_yellow = _clamp01(h_yellow)
 
-                r2 = r1 + (c_purple[0] - r1) * (edge * 0.85)
-                g2 = g1 + (c_purple[1] - g1) * (edge * 0.60)
-                b2 = b1 + (c_purple[2] - b1) * (edge * 0.90)
+                pink_gate = _smoothstep(0.70, 0.98, ridges) * _smoothstep(0.55, 1.00, curtain)
+                pink_gate *= (0.35 + 0.65 * (0.5 + 0.5 * math.sin(2 * math.pi * (0.09 * x + 0.002 * t) + 1.2)))
+                pink_gate = _clamp01(pink_gate)
 
-                r = int(max(0, min(255, r2 * a)))
-                g = int(max(0, min(255, g2 * a)))
-                b = int(max(0, min(255, b2 * a)))
+                h_pink = 0.93 - 0.07 * (0.5 + 0.5 * math.sin(2 * math.pi * (0.10 * x - 0.002 * t) + 0.4))
+                h_pink = h_pink % 1.0
 
-                pixels[i] = (r, g, b)
+                purple_gate = _smoothstep(0.78, 0.98, shimmer) * _smoothstep(0.55, 1.00, ridges) * 0.45
+                purple_gate = _clamp01(purple_gate)
+                h_purple = 0.78 + 0.04 * math.sin(2 * math.pi * (0.08 * x + 0.0015 * t) + 2.1)
+                h_purple = h_purple % 1.0
+
+                h = h_green
+                h = (1.0 - warm_gate) * h + warm_gate * h_yellow
+                h = (1.0 - pink_gate) * h + pink_gate * h_pink
+                h = (1.0 - purple_gate) * h + purple_gate * h_purple
+
+                s = 0.55 + 0.35 * _smoothstep(0.10, 0.80, intensity)
+                v = intensity
+
+                r, g, b = _hsv_to_rgb(h, s, v)
+
+                bg = int(14 * (1.0 - intensity) * (0.5 + 0.5 * curtain))
+                pixels[i] = (min(255, r + bg // 6), min(255, g + bg // 5), min(255, b + bg))
 
             pixels.show()
             sleep_ms = 25
