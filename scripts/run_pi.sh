@@ -15,4 +15,4 @@ python3 -m http.server 3000 &
 sleep 1
 
 cd $PROJECT_DIR
-DISPLAY=:0 chromium-browser --kiosk http://localhost:3000
+DISPLAY=:0 chromium-browser --kiosk --touch_events=enabled http://localhost:3000
